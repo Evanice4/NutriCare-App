@@ -1,32 +1,13 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'onboarding_screens/splash_screen.dart';
-import 'onboarding_screens/welcome_screen.dart';
-import 'onboarding_screens/child_nutrition_screen.dart';
-import 'onboarding_screens/placeholder_screen.dart';
+import 'package:nutri_care/my_app.dart';
 
-void main() {
-  runApp(const NutriCareApp());
-}
+import 'firebase_options.dart';
 
-class NutriCareApp extends StatelessWidget {
-  const NutriCareApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NutriCare',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/welcome': (context) => const WelcomeScreen(),
-        '/childNutrition': (context) => const ChildNutritionScreen(),
-        '/placeholder': (context) => const PlaceholderScreen(),
-      },
-    );
-  }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const MyApp());
 }
