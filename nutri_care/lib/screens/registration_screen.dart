@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import '../api/auth_api.dart';
+import 'login_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   final String userType;
-  const RegistrationScreen({Key? key, required this.userType})
-    : super(key: key);
+  const RegistrationScreen({super.key, required this.userType});
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -20,140 +20,472 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _displayNameController = TextEditingController();
+  final _authApi = AuthApi();
+
   File? _certificateFile;
   bool _loading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String? _error;
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _displayNameController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickCertificate() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        setState(() {
+          _certificateFile = File(picked.path);
+        });
+      }
+    } catch (e) {
       setState(() {
-        _certificateFile = File(picked.path);
+        _error = 'Failed to pick certificate image';
       });
     }
   }
 
+  Future<String?> _uploadCertificate() async {
+    if (_certificateFile == null) return null;
+
+    try {
+      final storage = FirebaseStorage.instance;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return null;
+
+      final fileName =
+          'certificate_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = storage.ref().child('certificates/${user.uid}/$fileName');
+
+      await ref.putFile(_certificateFile!);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to upload certificate';
+      });
+      return null;
+    }
+  }
+
   Future<void> _register() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_passwordController.text.trim() !=
+        _confirmPasswordController.text.trim()) {
       setState(() {
         _error = 'Passwords do not match';
       });
       return;
     }
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
-      final auth = FirebaseAuth.instance;
-      final firestore = FirebaseFirestore.instance;
-      final storage = FirebaseStorage.instance;
-      UserCredential userCredential = await auth.createUserWithEmailAndPassword(
+      // First register the user
+      final result = await _authApi.registerUser(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
+        displayName: _displayNameController.text.trim(),
+        userType: widget.userType,
       );
-      String uid = userCredential.user!.uid;
-      String? certificateUrl;
-      if (widget.userType == 'creator' && _certificateFile != null) {
-        final ref = storage.ref().child(
-          'certificates/$uid/${_certificateFile!.path.split('/').last}',
-        );
-        await ref.putFile(_certificateFile!);
-        certificateUrl = await ref.getDownloadURL();
-      }
-      await firestore.collection('users').doc(uid).set({
-        'email': _emailController.text.trim(),
-        'displayName': _displayNameController.text.trim(),
-        'userType': widget.userType,
-        'role': widget.userType == 'creator' ? 'creator' : 'member',
-        'isVerified': widget.userType == 'creator' ? false : null,
-        'certificateUrl': certificateUrl,
-      });
-      if (mounted) {
-        Navigator.of(context).pop(true);
+
+      if (!mounted) return;
+
+      if (result.isSuccess) {
+        // If creator and has certificate, upload it
+        if (widget.userType == 'creator' && _certificateFile != null) {
+          final certificateUrl = await _uploadCertificate();
+          if (certificateUrl != null) {
+            // Update user profile with certificate URL
+            final updatedProfile = result.user!.copyWith(
+              certificateUrl: certificateUrl,
+            );
+            await _authApi.updateUserProfile(updatedProfile);
+          }
+        }
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.userType == 'creator'
+                    ? 'Account created! Please wait for admin verification. You can now log in.'
+                    : 'Account created successfully! You can now log in.',
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+
+          // Since the user is now registered, they can log in
+          // The AuthWrapper will handle the navigation automatically
+          // Just navigate to login screen to let them sign in
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
+      } else {
+        setState(() {
+          _error = result.errorMessage;
+        });
       }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'An unexpected error occurred. Please try again.';
+        });
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isCreator = widget.userType == 'creator';
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Register as ${widget.userType == 'creator' ? 'Creator' : 'Member'}',
-        ),
+        title: Text('Register as ${isCreator ? 'Creator' : 'Member'}'),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _displayNameController,
-                decoration: const InputDecoration(labelText: 'Display Name'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => v == null || !v.contains('@')
-                    ? 'Enter a valid email'
-                    : null,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (v) =>
-                    v == null || v.length < 6 ? 'Min 6 chars' : null,
-              ),
-              TextFormField(
-                controller: _confirmPasswordController,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm Password',
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              children: [
+                // Registration header
+                Icon(
+                  isCreator ? Icons.verified_user : Icons.person_add,
+                  size: 80,
+                  color: Colors.green,
                 ),
-                obscureText: true,
-                validator: (v) => v != _passwordController.text
-                    ? 'Passwords do not match'
-                    : null,
-              ),
-              if (widget.userType == 'creator') ...[
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _pickCertificate,
-                  child: Text(
-                    _certificateFile == null
-                        ? 'Upload Certificate'
-                        : 'Certificate Selected',
+                Text(
+                  isCreator
+                      ? 'Create Creator Account'
+                      : 'Create Member Account',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                if (_certificateFile != null)
-                  Text('Selected: ${_certificateFile!.path.split('/').last}'),
-              ],
-              const SizedBox(height: 24),
-              if (_error != null)
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ElevatedButton(
-                onPressed: _loading
-                    ? null
-                    : () {
-                        if (_formKey.currentState!.validate()) _register();
+                const SizedBox(height: 32),
+
+                // Display Name Field
+                TextFormField(
+                  controller: _displayNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.green),
+                    ),
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Full name is required';
+                    }
+                    if (value.trim().length < 2) {
+                      return 'Name must be at least 2 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Email Field
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: const Icon(Icons.email),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.green),
+                    ),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Email is required';
+                    }
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value.trim())) {
+                      return 'Please enter a valid email address';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Password Field
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
                       },
-                child: _loading
-                    ? const CircularProgressIndicator()
-                    : const Text('Register'),
-              ),
-            ],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.green),
+                    ),
+                  ),
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Password is required';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Confirm Password Field
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.green),
+                    ),
+                  ),
+                  obscureText: _obscureConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Certificate Upload for Creators
+                if (isCreator) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Professional Certificate (Optional)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Upload your nutrition or health-related certification to help verify your expertise.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: _loading ? null : _pickCertificate,
+                          icon: Icon(
+                            _certificateFile == null
+                                ? Icons.upload_file
+                                : Icons.check_circle,
+                          ),
+                          label: Text(
+                            _certificateFile == null
+                                ? 'Choose Certificate'
+                                : 'Certificate Selected',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _certificateFile == null
+                                ? Colors.grey.shade200
+                                : Colors.green.shade50,
+                            foregroundColor: _certificateFile == null
+                                ? Colors.grey.shade700
+                                : Colors.green,
+                          ),
+                        ),
+                        if (_certificateFile != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Selected: ${_certificateFile!.path.split('/').last}',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // Error Message
+                if (_error != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red.shade200),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade600),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(color: Colors.red.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Register Button
+                ElevatedButton(
+                  onPressed: _loading ? null : _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          'Create Account',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 16),
+
+                // Login Link
+                TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                  child: const Text('Already have an account? Login here'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

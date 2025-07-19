@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 class UserTypeSelectionScreen extends StatelessWidget {
   final void Function(String userType) onUserTypeSelected;
-  const UserTypeSelectionScreen({Key? key, required this.onUserTypeSelected})
-    : super(key: key);
+  const UserTypeSelectionScreen({super.key, required this.onUserTypeSelected});
 
   @override
   Widget build(BuildContext context) {
