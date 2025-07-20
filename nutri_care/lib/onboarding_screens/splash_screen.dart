@@ -6,16 +6,23 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF008000), // Green
+      backgroundColor: const Color(0xFF009639), 
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.local_hospital_rounded, size: 80, color: Colors.white),
+            SizedBox(
+              height: 100,
+              child: Image.asset('assets/nutri_logo.jpg'),
+            ),
             const SizedBox(height: 20),
             const Text(
               'NutriCare',
-              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
             const Text(
@@ -26,7 +33,7 @@ class SplashScreen extends StatelessWidget {
             const SizedBox(height: 40),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
+                backgroundColor: const Color(0xFFFFD700), // Yellow button
                 foregroundColor: Colors.black,
               ),
               onPressed: () => Navigator.pushNamed(context, '/welcome'),
