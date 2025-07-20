@@ -46,7 +46,7 @@ class ChildNutritionScreen extends StatelessWidget {
                 foregroundColor: Colors.black,
               ),
               onPressed: () {
-                Navigator.pushNamed(context, '/placeholder');
+                Navigator.pushNamed(context, '/community_support');
               },
               child: const Text("Next"),
             ),
