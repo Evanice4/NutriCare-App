@@ -100,49 +100,101 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _currentIndex == 0
-              ? 'Muraho Neza! Welcome'
-              : ['Home', 'Guides', 'Recipes', 'Alerts'][_currentIndex],
-        ),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  _showProfileDialog();
-                  break;
-                case 'logout':
-                  _signOut();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    const Icon(Icons.person),
-                    const SizedBox(width: 8),
-                    Text(_currentUser?.displayName ?? 'Profile'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-            ],
+        toolbarHeight: 180, // Increased height to accommodate all elements
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF8BC34A), Color(0xFFC8E6C9)], // Green gradient
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ],
+          child: Padding(
+            padding: const EdgeInsets.only(top: 40.0, left: 16.0, right: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Muraho\nNeza!', // "Muraho Neza!" on two lines
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        height: 1.0, // Adjust line height
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // "welcome" next to "Neza!"
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: 10.0,
+                        ), // Align "welcome" with "Neza!"
+                        child: Text(
+                          'welcome',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 22,
+                            //fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(), // Pushes content to the left
+                    // You might add the menu icon here if needed
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'profile':
+                            _showProfileDialog();
+                            break;
+                          case 'logout':
+                            _signOut();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person),
+                              const SizedBox(width: 8),
+                              Text(_currentUser?.displayName ?? 'Profile'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout),
+                              SizedBox(width: 8),
+                              Text('Logout'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Colors.white,
+                        size: 30,
+                      ), // Example of a menu icon
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "let's build healthy eating habits together",
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
@@ -159,10 +211,15 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Guides'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
+            icon: Icon(
+              Icons.shopping_basket,
+            ), // Changed to shopping_basket for Recipes
             label: 'Recipes',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.warning), label: 'Alerts'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Alerts',
+          ), // Changed to notifications for Alerts
         ],
       ),
     );
@@ -206,129 +263,128 @@ class _HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Welcome Card
-          Card(
-            elevation: 4,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.green.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      // The overall background color of the body should be yellow.
+      child: Container(
+        color: const Color(0xFFDCDCAA), // Yellowish background
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // No "Welcome Card" as per the new design.
+              // Instead, we have the Quick Links (round icons) directly below the app bar.
+              GridView.count(
+                crossAxisCount: 3, // 3 items per row
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
                 children: [
-                  Icon(Icons.restaurant_menu, size: 40, color: Colors.white),
-                  SizedBox(height: 12),
-                  Text(
-                    'Welcome to NutriCare!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  _RoundQuickLink(
+                    imagePath:
+                        'assets/images/nutrition_guides.png', // Replace with actual image asset
+                    title: 'Nutrition\nGuides',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GuidesScreen(),
+                        ),
+                      );
+                    },
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Your trusted companion for nutrition guidance and healthy recipes.',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                  _RoundQuickLink(
+                    imagePath:
+                        'assets/images/local_recipes.png', // Replace with actual image asset
+                    title: 'Local\nRecipes',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => RecipesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _RoundQuickLink(
+                    imagePath:
+                        'assets/images/health_alerts.png', // Replace with actual image asset
+                    title: 'Health\nAlerts',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AlertsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          // Quick Links Section
-          const Text(
-            'Quick Links',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
+              // Did You Know Section
+              const Text(
+                'DID YOU KNOW!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
 
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: [
-              _QuickLinkCard(
-                icon: Icons.menu_book,
-                title: 'Nutrition Guides',
-                subtitle: 'Expert advice',
-                color: Colors.blue,
-                onTap: () {
-                  // This would be handled by the parent's navigation
-                },
+              const _DidYouKnowCard(
+                fact:
+                    'Avocados are packed with heart-healthy fats that\ncan help lower bad cholesterol, keep your brain sharp! 🥑💖',
               ),
-              _QuickLinkCard(
-                icon: Icons.restaurant_menu,
-                title: 'Healthy Recipes',
-                subtitle: 'Delicious meals',
-                color: Colors.orange,
-                onTap: () {
-                  // This would be handled by the parent's navigation
-                },
+              const SizedBox(height: 12),
+              const _DidYouKnowCard(
+                fact:
+                    'Eating one kiwi gives you more vitamin C than an\norange, helping boost your immune system and fight off\ncolds naturally! 🥝💪',
               ),
-              _QuickLinkCard(
-                icon: Icons.warning_amber,
-                title: 'Health Alerts',
-                subtitle: 'Stay informed',
-                color: Colors.red,
-                onTap: () {
-                  // This would be handled by the parent's navigation
-                },
+              const SizedBox(height: 12),
+              const _DidYouKnowCard(
+                fact:
+                    'Eating one kiwi gives you more vitamin C than an\norange, helping boost your immune system and fight off\ncolds naturally! 🥝💪', // Duplicated from image
               ),
-              _QuickLinkCard(
-                icon: Icons.trending_up,
-                title: 'Progress Tracker',
-                subtitle: 'Monitor health',
-                color: Colors.green,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Progress Tracker - Coming Soon!'),
-                    ),
-                  );
-                },
-              ),
+              const SizedBox(height: 20), // Padding before bottom nav bar
             ],
           ),
-          const SizedBox(height: 24),
+        ),
+      ),
+    );
+  }
+}
 
-          // Did You Know Section
-          const Text(
-            'Did You Know?',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
+class _RoundQuickLink extends StatelessWidget {
+  final String imagePath;
+  final String title;
+  final VoidCallback onTap;
 
-          const _DidYouKnowCard(
-            fact:
-                'Eating a variety of colorful fruits and vegetables ensures you get a wide range of vitamins and minerals!',
-            icon: Icons.palette,
+  const _RoundQuickLink({
+    required this.imagePath,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundColor:
+                Colors.transparent, // Background of avatar is transparent
+            child: ClipOval(
+              child: Image.asset(
+                imagePath,
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          const _DidYouKnowCard(
-            fact:
-                'Drinking water before meals can help with digestion and weight management.',
-            icon: Icons.water_drop,
-          ),
-          const SizedBox(height: 12),
-          const _DidYouKnowCard(
-            fact:
-                'Protein should make up 10-35% of your daily calorie intake for optimal health.',
-            icon: Icons.fitness_center,
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -336,96 +392,19 @@ class _HomeContent extends StatelessWidget {
   }
 }
 
-class _QuickLinkCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
+class _DidYouKnowCard extends StatelessWidget {
+  final String fact;
 
-  const _QuickLinkCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
+  const _DidYouKnowCard({required this.fact});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 3,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(
-                    color.red,
-                    color.green,
-                    color.blue,
-                    0.1,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 32, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DidYouKnowCard extends StatelessWidget {
-  final String fact;
-  final IconData icon;
-
-  const _DidYouKnowCard({required this.fact, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
       child: Container(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(76, 175, 80, 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: Colors.green, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: Text(fact, style: const TextStyle(fontSize: 14))),
-          ],
-        ),
+        child: Text(fact, style: const TextStyle(fontSize: 14)),
       ),
     );
   }
