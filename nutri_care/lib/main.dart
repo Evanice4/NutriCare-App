@@ -1,9 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 <<<<<<< HEAD
-import 'onboarding_screens/splash_screen.dart';
-import 'onboarding_screens/welcome_screen.dart';
-import 'onboarding_screens/child_nutrition_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/child_nutrition_screen.dart';
 
 void main() {
   runApp(const NutriCareApp());
