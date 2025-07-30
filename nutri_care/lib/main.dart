@@ -1,11 +1,23 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'onboarding_screens/splash_screen.dart';
-import 'onboarding_screens/welcome_screen.dart';
-import 'onboarding_screens/child_nutrition_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/child_nutrition_screen.dart';
+import 'screens/community_support_screen.dart';
+import 'services/service_locator.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize services (if needed)
+  serviceLocator.initialize();
+
   runApp(const NutriCareApp());
 }
 
@@ -26,23 +38,9 @@ class NutriCareApp extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/welcome': (context) => const WelcomeScreen(),
         '/childNutrition': (context) => const ChildNutritionScreen(),
+        '/community_support': (context) => const CommunitySupportScreen(),
+        // Add other routes as needed
       },
     );
   }
-=======
-import 'services/service_locator.dart';
-import 'my_app.dart';
-import 'firebase_options.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Initialize services
-  serviceLocator.initialize();
-
-  runApp(const MyApp());
->>>>>>> 0bbf32c66b77169eb4b6a3cac2eec212091daa34
 }
