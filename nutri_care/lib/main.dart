@@ -9,7 +9,7 @@ import 'screens/community_support_screen.dart';
 import 'screens/user_type_selection_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/registration_screen.dart';
-import 'screens/home_screen.dart';
+
 import 'widgets/auth_wrapper.dart';
 
 import 'services/service_locator.dart';
@@ -17,6 +17,8 @@ import 'firebase_options.dart';
 import 'bloc/navigation/navigation_bloc.dart';
 import 'bloc/user/user_bloc.dart';
 import 'bloc/content/content_bloc.dart';
+import 'bloc/search/search_bloc.dart';
+import 'bloc/theme/theme_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,44 +39,57 @@ class NutriCareApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<NavigationBloc>(
-          create: (context) => NavigationBloc(),
+        BlocProvider<ThemeBloc>(
+          create: (context) => ThemeBloc()..add(LoadTheme()),
         ),
-        BlocProvider<UserBloc>(
-          create: (context) => UserBloc(),
-        ),
-        BlocProvider<ContentBloc>(
-          create: (context) => ContentBloc(),
+        BlocProvider<NavigationBloc>(create: (context) => NavigationBloc()),
+        BlocProvider<UserBloc>(create: (context) => UserBloc()),
+        BlocProvider<ContentBloc>(create: (context) => ContentBloc()),
+        BlocProvider<SearchBloc>(
+          create: (context) =>
+              SearchBloc(contentBloc: context.read<ContentBloc>()),
         ),
       ],
-      child: MaterialApp(
-        title: 'NutriCare',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.green,
-          scaffoldBackgroundColor: Colors.white,
-        ),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const SplashScreen(),
-          '/welcome': (context) => const WelcomeScreen(),
-          '/childNutrition': (context) => const ChildNutritionScreen(),
-          '/communitySupport': (context) => const CommunitySupportScreen(),
-          '/userTypeSelection': (context) => UserTypeSelectionScreen(
-            onUserTypeSelected: (userType) {
-              if (userType == 'member') {
-                Navigator.pushNamed(context, '/register');
-              } else {
-                Navigator.pushNamed(context, '/registerCreator');
-              }
+      child: BlocBuilder<ThemeBloc, ThemeState>(
+        builder: (context, themeState) {
+          return MaterialApp(
+            title: 'NutriCare',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              primarySwatch: Colors.green,
+              scaffoldBackgroundColor: Colors.white,
+              brightness: Brightness.light,
+            ),
+            darkTheme: ThemeData(
+              primarySwatch: Colors.green,
+              scaffoldBackgroundColor: Colors.grey[900],
+              brightness: Brightness.dark,
+            ),
+            themeMode: themeState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            initialRoute: '/',
+            routes: {
+              '/': (context) => const SplashScreen(),
+              '/welcome': (context) => const WelcomeScreen(),
+              '/childNutrition': (context) => const ChildNutritionScreen(),
+              '/communitySupport': (context) => const CommunitySupportScreen(),
+              '/userTypeSelection': (context) => UserTypeSelectionScreen(
+                onUserTypeSelected: (userType) {
+                  if (userType == 'member') {
+                    Navigator.pushNamed(context, '/register');
+                  } else {
+                    Navigator.pushNamed(context, '/registerCreator');
+                  }
+                },
+              ),
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) =>
+                  const RegistrationScreen(userType: 'member'),
+              '/registerCreator': (context) =>
+                  const RegistrationScreen(userType: 'creator'),
+              '/home': (context) => const AuthWrapper(),
+              '/auth': (context) => const AuthWrapper(),
             },
-          ),
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegistrationScreen(userType: 'member'),
-          '/registerCreator': (context) =>
-              const RegistrationScreen(userType: 'creator'),
-          '/home': (context) => const AuthWrapper(),
-          '/auth': (context) => const AuthWrapper(),
+          );
         },
       ),
     );

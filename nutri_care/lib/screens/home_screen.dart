@@ -12,7 +12,8 @@ import '../bloc/user/user_event.dart';
 import '../bloc/user/user_state.dart';
 import '../bloc/content/content_bloc.dart';
 import '../bloc/content/content_event.dart';
-import 'login_screen.dart';
+import '../widgets/theme_toggle.dart';
+
 import 'guides_screen.dart';
 import 'recipes_screen.dart';
 import 'alerts_screen.dart';
@@ -89,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundColor: currentIndex == 0 ? AppColors.homeBackground : AppColors.secondaryBackground,
                   foregroundColor: Colors.white,
                   actions: [
+                    const ThemeToggle(),
                     PopupMenuButton<String>(
                       onSelected: (value) {
                         switch (value) {

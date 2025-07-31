@@ -12,3 +12,8 @@ export 'user/user_state.dart';
 export 'content/content_bloc.dart';
 export 'content/content_event.dart';
 export 'content/content_state.dart';
+
+// Search BLoC
+export 'search/search_bloc.dart';
+export 'search/search_event.dart';
+export 'search/search_state.dart';
