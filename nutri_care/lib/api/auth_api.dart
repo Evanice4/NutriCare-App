@@ -183,6 +183,93 @@ class AuthApi {
     }
   }
 
+  // Phone authentication
+  Future<AuthResult> verifyPhoneNumber({
+    required String phoneNumber,
+    required Function(String) onCodeSent,
+    required Function(String) onError,
+  }) async {
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification (Android only)
+          await _signInWithPhoneCredential(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          onError(_getFirebaseAuthErrorMessage(e.code));
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          onCodeSent(verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+      );
+      return AuthResult.success(null);
+    } catch (e) {
+      return AuthResult.failure('Phone verification failed: ${e.toString()}');
+    }
+  }
+
+  // Verify OTP and sign in
+  Future<AuthResult> verifyOTPAndSignIn({
+    required String verificationId,
+    required String otp,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otp,
+      );
+      return await _signInWithPhoneCredential(credential);
+    } catch (e) {
+      return AuthResult.failure('Invalid OTP. Please try again.');
+    }
+  }
+
+  // Helper method for phone credential sign-in
+  Future<AuthResult> _signInWithPhoneCredential(PhoneAuthCredential credential) async {
+    try {
+      final userCredential = await _auth.signInWithCredential(credential);
+      
+      if (userCredential.user == null) {
+        return AuthResult.failure('Sign-in failed. Please try again.');
+      }
+
+      // Check if user profile exists
+      UserProfile? userProfile = await getUserProfile(userCredential.user!.uid);
+      
+      if (userProfile == null) {
+        // Create new user profile for phone authentication
+        userProfile = UserProfile(
+          uid: userCredential.user!.uid,
+          email: userCredential.user!.email ?? '',
+          displayName: userCredential.user!.displayName ?? 'Phone User',
+          userType: 'member',
+          role: 'member',
+          isVerified: true,
+          phoneNumber: userCredential.user!.phoneNumber,
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+        );
+        
+        await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set(userProfile.toMap());
+      } else {
+        // Update last login time
+        final updatedProfile = userProfile.copyWith(lastLoginAt: DateTime.now());
+        await updateUserProfile(updatedProfile);
+      }
+
+      return AuthResult.success(userProfile);
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failure(_getFirebaseAuthErrorMessage(e.code));
+    } catch (e) {
+      return AuthResult.failure('Sign-in failed: ${e.toString()}');
+    }
+  }
+
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();

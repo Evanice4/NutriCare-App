@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../api/auth_api.dart';
 import 'home_screen.dart';
 import 'registration_screen.dart';
+import 'phone_auth_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -301,6 +302,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                ),
+                const SizedBox(height: 16),
+
+                // Phone Login Option
+                OutlinedButton.icon(
+                  onPressed: _loading ? null : () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PhoneAuthScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.phone),
+                  label: const Text('Login with Phone'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
 

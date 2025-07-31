@@ -8,6 +8,7 @@ class UserProfile {
   final String role; // 'creator', 'member', or 'admin'
   final bool isVerified;
   final String? certificateUrl;
+  final String? phoneNumber;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final bool isActive;
@@ -20,6 +21,7 @@ class UserProfile {
     required this.role,
     required this.isVerified,
     this.certificateUrl,
+    this.phoneNumber,
     required this.createdAt,
     this.lastLoginAt,
     this.isActive = true,
@@ -34,6 +36,7 @@ class UserProfile {
       role: map['role'] ?? 'member',
       isVerified: map['isVerified'] ?? false,
       certificateUrl: map['certificateUrl'],
+      phoneNumber: map['phoneNumber'],
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.tryParse(map['createdAt']?.toString() ?? '') ??
@@ -55,6 +58,7 @@ class UserProfile {
       'role': role,
       'isVerified': isVerified,
       'certificateUrl': certificateUrl,
+      'phoneNumber': phoneNumber,
       'createdAt': createdAt,
       'lastLoginAt': lastLoginAt,
       'isActive': isActive,
@@ -68,6 +72,7 @@ class UserProfile {
     String? role,
     bool? isVerified,
     String? certificateUrl,
+    String? phoneNumber,
     DateTime? createdAt,
     DateTime? lastLoginAt,
     bool? isActive,
@@ -80,6 +85,7 @@ class UserProfile {
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,
       certificateUrl: certificateUrl ?? this.certificateUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       isActive: isActive ?? this.isActive,
