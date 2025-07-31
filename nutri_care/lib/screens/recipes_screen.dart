@@ -1,7 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/content_models.dart';
 import '../models/user_model.dart';
+import '../constants/colors.dart';
+import '../bloc/content/content_bloc.dart';
+import '../bloc/content/content_event.dart';
+import '../bloc/content/content_state.dart';
 import 'create_recipe_screen.dart';
 
 class RecipesScreen extends StatefulWidget {
@@ -45,26 +49,23 @@ class _RecipesScreenState extends State<RecipesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.secondaryBackground,
       appBar: AppBar(
         title: const Text('Recipes'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.secondaryBackground,
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('recipes')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: BlocBuilder<ContentBloc, ContentState>(
+        builder: (context, state) {
+          if (state is ContentLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final recipes = snapshot.data?.docs ?? [];
+          if (state is ContentError) {
+            return Center(child: Text('Error: ${state.message}'));
+          }
+
+          final recipes = state is ContentLoaded ? state.recipes : <Recipe>[];
 
           if (recipes.isEmpty) {
             return Center(
@@ -93,7 +94,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       icon: const Icon(Icons.add),
                       label: const Text('Create Your First Recipe'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.homeBackground,
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -107,11 +108,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
             padding: const EdgeInsets.all(16),
             itemCount: recipes.length,
             itemBuilder: (context, index) {
-              final doc = recipes[index];
-              final recipe = Recipe.fromMap(
-                doc.id,
-                doc.data() as Map<String, dynamic>,
-              );
+              final recipe = recipes[index];
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -202,7 +199,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
       floatingActionButton: _isCreator
           ? FloatingActionButton(
               onPressed: _navigateToCreateRecipe,
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.homeBackground,
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,

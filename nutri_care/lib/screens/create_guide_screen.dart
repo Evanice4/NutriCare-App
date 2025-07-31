@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:io';
 import '../api/firestore_content_api.dart';
 import '../models/content_models.dart';
+import '../bloc/content/content_bloc.dart';
+import '../bloc/content/content_event.dart';
 
 class CreateGuideScreen extends StatefulWidget {
   const CreateGuideScreen({super.key});
@@ -132,6 +135,9 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
       final guideId = await _contentApi.createNewGuide(guide);
 
       if (mounted && guideId.isNotEmpty) {
+        // Refresh content in BLoC
+        context.read<ContentBloc>().add(LoadGuides());
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Guide created successfully!'),

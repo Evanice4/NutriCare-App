@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../api/auth_api.dart';
 import '../models/user_model.dart';
+import '../constants/colors.dart';
+import '../bloc/navigation/navigation_bloc.dart';
+import '../bloc/navigation/navigation_event.dart';
+import '../bloc/navigation/navigation_state.dart';
+import '../bloc/user/user_bloc.dart';
+import '../bloc/user/user_event.dart';
+import '../bloc/user/user_state.dart';
+import '../bloc/content/content_bloc.dart';
+import '../bloc/content/content_event.dart';
 import 'login_screen.dart';
 import 'guides_screen.dart';
 import 'recipes_screen.dart';
@@ -15,167 +25,135 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
   final AuthApi _authApi = AuthApi();
-  UserProfile? _currentUser;
-  bool _loading = true;
-
-  List<Widget> _screens = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      context.read<UserBloc>().add(LoadUserProfile(user.uid));
+      context.read<ContentBloc>().add(LoadGuides());
+      context.read<ContentBloc>().add(LoadRecipes());
+      context.read<ContentBloc>().add(LoadAlerts());
+    }
   }
 
-  Future<void> _loadUserProfile() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final userProfile = await _authApi.getUserProfile(user.uid);
-        if (userProfile != null && mounted) {
-          setState(() {
-            _currentUser = userProfile;
-            _screens = [
-              const _HomeContent(),
-              GuidesScreen(currentUser: userProfile),
-              RecipesScreen(currentUser: userProfile),
-              const AlertsScreen(),
-            ];
-            _loading = false;
-          });
-        } else {
-          // Profile not found, sign out and redirect
-          await _authApi.signOut();
-          if (mounted) {
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/login',
-              (route) => false,
-            );
-          }
-        }
-      } else {
-        // No user logged in, redirect to login
-        if (mounted) {
+
+
+  void _signOut() {
+    context.read<UserBloc>().add(SignOutUser());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<UserBloc, UserState>(
+      listener: (context, state) {
+        if (state is UserSignedOut || state is UserError) {
           Navigator.of(context).pushNamedAndRemoveUntil(
             '/login',
             (route) => false,
           );
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-        // Sign out and redirect to login on error
-        await _authApi.signOut();
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-          (route) => false,
-        );
-      }
-    }
-  }
+      },
+      child: BlocBuilder<UserBloc, UserState>(
+        builder: (context, userState) {
+          if (userState is UserLoading) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
 
-  Future<void> _signOut() async {
-    try {
-      await _authApi.signOut();
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error signing out: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+          if (userState is! UserLoaded) {
+            return const Scaffold(body: Center(child: Text('Please log in')));
+          }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+          final currentUser = userState.user;
+          final screens = [
+            const _HomeContent(),
+            GuidesScreen(currentUser: currentUser),
+            RecipesScreen(currentUser: currentUser),
+            const AlertsScreen(),
+          ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _currentIndex == 0
-              ? 'Muraho Neza! Welcome'
-              : ['Home', 'Guides', 'Recipes', 'Alerts'][_currentIndex],
-        ),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  _showProfileDialog();
-                  break;
-                case 'logout':
-                  _signOut();
-                  break;
-              }
+          return BlocBuilder<NavigationBloc, NavigationState>(
+            builder: (context, navState) {
+              final currentIndex = navState.currentIndex;
+              
+              return Scaffold(
+                backgroundColor: currentIndex == 0 ? AppColors.homeBackground : AppColors.secondaryBackground,
+                appBar: AppBar(
+                  title: Text(
+                    currentIndex == 0
+                        ? 'Muraho Neza! Welcome'
+                        : ['Home', 'Guides', 'Recipes', 'Alerts'][currentIndex],
+                  ),
+                  backgroundColor: currentIndex == 0 ? AppColors.homeBackground : AppColors.secondaryBackground,
+                  foregroundColor: Colors.white,
+                  actions: [
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'profile':
+                            _showProfileDialog(currentUser);
+                            break;
+                          case 'logout':
+                            _signOut();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person),
+                              const SizedBox(width: 8),
+                              Text(currentUser.displayName),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout),
+                              SizedBox(width: 8),
+                              Text('Logout'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                body: IndexedStack(index: currentIndex, children: screens),
+                bottomNavigationBar: BottomNavigationBar(
+                  type: BottomNavigationBarType.fixed,
+                  currentIndex: currentIndex,
+                  onTap: (index) {
+                    context.read<NavigationBloc>().add(NavigateToTab(index));
+                  },
+                  backgroundColor: AppColors.bottomNavBackground,
+                  selectedItemColor: Colors.black,
+                  unselectedItemColor: Colors.grey[600],
+                  items: const [
+                    BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+                    BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Guides'),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.restaurant_menu),
+                      label: 'Recipes',
+                    ),
+                    BottomNavigationBarItem(icon: Icon(Icons.warning), label: 'Alerts'),
+                  ],
+                ),
+              );
             },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    const Icon(Icons.person),
-                    const SizedBox(width: 8),
-                    Text(_currentUser?.displayName ?? 'Profile'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          );
         },
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Guides'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Recipes',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.warning), label: 'Alerts'),
-        ],
       ),
     );
   }
 
-  void _showProfileDialog() {
+  void _showProfileDialog(UserProfile user) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -184,15 +162,15 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Name: ${_currentUser?.displayName ?? 'N/A'}'),
+            Text('Name: ${user.displayName}'),
             const SizedBox(height: 8),
-            Text('Email: ${_currentUser?.email ?? 'N/A'}'),
+            Text('Email: ${user.email}'),
             const SizedBox(height: 8),
-            Text('Type: ${_currentUser?.userType ?? 'N/A'}'),
+            Text('Type: ${user.userType}'),
             const SizedBox(height: 8),
-            if (_currentUser?.userType == 'creator')
+            if (user.userType == 'creator')
               Text(
-                'Verified: ${_currentUser?.isVerified == true ? 'Yes' : 'Pending'}',
+                'Verified: ${user.isVerified ? 'Yes' : 'Pending'}',
               ),
           ],
         ),
@@ -225,29 +203,25 @@ class _HomeContent extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.green.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: Colors.white,
               ),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.restaurant_menu, size: 40, color: Colors.white),
+                  Icon(Icons.restaurant_menu, size: 40, color: AppColors.homeBackground),
                   SizedBox(height: 12),
                   Text(
                     'Welcome to NutriCare!',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.homeBackground,
                     ),
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Your trusted companion for nutrition guidance and healthy recipes.',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                    style: TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                 ],
               ),
@@ -258,7 +232,7 @@ class _HomeContent extends StatelessWidget {
           // Quick Links Section
           const Text(
             'Quick Links',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 16),
 
@@ -316,7 +290,7 @@ class _HomeContent extends StatelessWidget {
           // Did You Know Section
           const Text(
             'Did You Know?',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 16),
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 //import screens here for routing
 import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -13,6 +14,9 @@ import 'widgets/auth_wrapper.dart';
 
 import 'services/service_locator.dart';
 import 'firebase_options.dart';
+import 'bloc/navigation/navigation_bloc.dart';
+import 'bloc/user/user_bloc.dart';
+import 'bloc/content/content_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,35 +35,48 @@ class NutriCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NutriCare',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/welcome': (context) => const WelcomeScreen(),
-        '/childNutrition': (context) => const ChildNutritionScreen(),
-        '/communitySupport': (context) => const CommunitySupportScreen(),
-        '/userTypeSelection': (context) => UserTypeSelectionScreen(
-          onUserTypeSelected: (userType) {
-            if (userType == 'member') {
-              Navigator.pushNamed(context, '/register');
-            } else {
-              Navigator.pushNamed(context, '/registerCreator');
-            }
-          },
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<NavigationBloc>(
+          create: (context) => NavigationBloc(),
         ),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegistrationScreen(userType: 'member'),
-        '/registerCreator': (context) =>
-            const RegistrationScreen(userType: 'creator'),
-        '/home': (context) => const AuthWrapper(),
-        '/auth': (context) => const AuthWrapper(),
-      },
+        BlocProvider<UserBloc>(
+          create: (context) => UserBloc(),
+        ),
+        BlocProvider<ContentBloc>(
+          create: (context) => ContentBloc(),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'NutriCare',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.green,
+          scaffoldBackgroundColor: Colors.white,
+        ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const SplashScreen(),
+          '/welcome': (context) => const WelcomeScreen(),
+          '/childNutrition': (context) => const ChildNutritionScreen(),
+          '/communitySupport': (context) => const CommunitySupportScreen(),
+          '/userTypeSelection': (context) => UserTypeSelectionScreen(
+            onUserTypeSelected: (userType) {
+              if (userType == 'member') {
+                Navigator.pushNamed(context, '/register');
+              } else {
+                Navigator.pushNamed(context, '/registerCreator');
+              }
+            },
+          ),
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegistrationScreen(userType: 'member'),
+          '/registerCreator': (context) =>
+              const RegistrationScreen(userType: 'creator'),
+          '/home': (context) => const AuthWrapper(),
+          '/auth': (context) => const AuthWrapper(),
+        },
+      ),
     );
   }
 }

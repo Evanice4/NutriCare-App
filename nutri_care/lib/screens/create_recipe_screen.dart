@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:io';
 import '../api/firestore_content_api.dart';
 import '../models/content_models.dart';
+import '../bloc/content/content_bloc.dart';
+import '../bloc/content/content_event.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   const CreateRecipeScreen({super.key});
@@ -143,6 +146,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       final recipeId = await _contentApi.createRecipe(recipe);
 
       if (mounted && recipeId.isNotEmpty) {
+        // Refresh content in BLoC
+        context.read<ContentBloc>().add(LoadRecipes());
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Recipe created successfully!'),

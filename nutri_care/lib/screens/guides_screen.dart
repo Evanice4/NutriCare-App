@@ -1,7 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/content_models.dart';
 import '../models/user_model.dart';
+import '../constants/colors.dart';
+import '../bloc/content/content_bloc.dart';
+import '../bloc/content/content_event.dart';
+import '../bloc/content/content_state.dart';
 import 'create_guide_screen.dart';
 
 class GuidesScreen extends StatefulWidget {
@@ -47,30 +51,27 @@ class _GuidesScreenState extends State<GuidesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.secondaryBackground,
       appBar: AppBar(
         title: const Text('Nutrition Guides'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.secondaryBackground,
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('guides')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: BlocBuilder<ContentBloc, ContentState>(
+        builder: (context, state) {
+          if (state is ContentLoading) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          final guides = snapshot.data?.docs ?? [];
+          if (state is ContentError) {
+            return Center(
+              child: Text('Error: ${state.message}'),
+            );
+          }
+
+          final guides = state is ContentLoaded ? state.guides : <Guide>[];
 
           if (guides.isEmpty) {
             return Center(
@@ -102,7 +103,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
                       icon: const Icon(Icons.add),
                       label: const Text('Create Your First Guide'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.homeBackground,
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -116,11 +117,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
             padding: const EdgeInsets.all(16),
             itemCount: guides.length,
             itemBuilder: (context, index) {
-              final doc = guides[index];
-              final guide = Guide.fromMap(
-                doc.data() as Map<String, dynamic>,
-                doc.id,
-              );
+              final guide = guides[index];
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -219,7 +216,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
       floatingActionButton: _isCreator
           ? FloatingActionButton(
               onPressed: _navigateToCreateGuide,
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.homeBackground,
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
