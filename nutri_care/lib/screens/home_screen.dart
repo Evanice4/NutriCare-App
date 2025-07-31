@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final userProfile = await _authApi.getUserProfile(user.uid);
-        if (mounted) {
+        if (userProfile != null && mounted) {
           setState(() {
             _currentUser = userProfile;
             _screens = [
@@ -44,12 +44,22 @@ class _HomeScreenState extends State<HomeScreen> {
             ];
             _loading = false;
           });
+        } else {
+          // Profile not found, sign out and redirect
+          await _authApi.signOut();
+          if (mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          }
         }
       } else {
         // No user logged in, redirect to login
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login',
+            (route) => false,
           );
         }
       }
@@ -58,15 +68,11 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _loading = false;
         });
-        // Show error and redirect to login
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading profile: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        // Sign out and redirect to login on error
+        await _authApi.signOut();
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+          (route) => false,
         );
       }
     }
@@ -76,8 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _authApi.signOut();
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+          (route) => false,
         );
       }
     } catch (e) {

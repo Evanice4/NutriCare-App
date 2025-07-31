@@ -57,7 +57,7 @@ class NutriCareApp extends StatelessWidget {
         '/register': (context) => const RegistrationScreen(userType: 'member'),
         '/registerCreator': (context) =>
             const RegistrationScreen(userType: 'creator'),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const AuthWrapper(),
         '/auth': (context) => const AuthWrapper(),
       },
     );

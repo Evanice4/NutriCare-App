@@ -113,51 +113,43 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       if (result.isSuccess) {
         // If creator and has certificate, upload it
         if (widget.userType == 'creator' && _certificateFile != null) {
-          final certificateUrl = await _uploadCertificate();
-          if (certificateUrl != null) {
-            // Update user profile with certificate URL
-            final updatedProfile = result.user!.copyWith(
-              certificateUrl: certificateUrl,
-            );
-            await _authApi.updateUserProfile(updatedProfile);
+          try {
+            final certificateUrl = await _uploadCertificate();
+            if (certificateUrl != null && result.user != null) {
+              final updatedProfile = result.user!.copyWith(
+                certificateUrl: certificateUrl,
+              );
+              await _authApi.updateUserProfile(updatedProfile);
+            }
+          } catch (uploadError) {
+            // Continue even if certificate upload fails
+            print('Certificate upload failed: $uploadError');
           }
         }
 
         // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.userType == 'creator'
-                    ? 'Account created! Please wait for admin verification. You can now log in.'
-                    : 'Account created successfully! You can now log in.',
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-          // Since the user is now registered, they can log in
-          // The AuthWrapper will handle the navigation automatically
-          // Just navigate to login screen to let them sign in
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
-        }
+        // Navigate to home screen
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/home',
+          (route) => false,
+        );
       } else {
         setState(() {
           _error = result.errorMessage;
+          _loading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'An unexpected error occurred. Please try again.';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
+          _error = 'Registration failed: ${e.toString()}';
           _loading = false;
         });
       }

@@ -41,7 +41,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
   }
 
   bool get _isCreator {
-    return _currentUser?.userType == 'creator' && _currentUser?.isVerified == true;
+    return _currentUser?.userType == 'creator';
   }
 
   @override

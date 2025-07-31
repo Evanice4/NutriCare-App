@@ -47,9 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (result.isSuccess) {
         // Login successful, navigate to home screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/home',
+            (route) => false,
+          );
+        }
       } else {
         setState(() {
           _error = result.errorMessage;

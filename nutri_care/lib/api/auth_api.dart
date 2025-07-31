@@ -39,14 +39,16 @@ class AuthApi {
       // Get user profile
       final userProfile = await getUserProfile(credential.user!.uid);
       if (userProfile == null) {
-        return AuthResult.failure('User profile not found.');
+        return AuthResult.failure('User profile not found. Please contact support.');
       }
 
-      // Check if creator account is verified
-      if (userProfile.userType == 'creator' && !userProfile.isVerified) {
-        return AuthResult.failure(
-          'Your account is pending admin verification.',
-        );
+      // Update last login time
+      try {
+        final updatedProfile = userProfile.copyWith(lastLoginAt: DateTime.now());
+        await updateUserProfile(updatedProfile);
+      } catch (updateError) {
+        // Continue even if update fails
+        print('Profile update failed: $updateError');
       }
 
       return AuthResult.success(userProfile);
@@ -68,6 +70,8 @@ class AuthApi {
     String? certificateUrl,
   }) async {
     try {
+      print('Starting registration for: $email');
+      
       // Validate inputs
       if (email.isEmpty || password.isEmpty || displayName.isEmpty) {
         return AuthResult.failure('All fields are required');
@@ -81,6 +85,7 @@ class AuthApi {
         return AuthResult.failure('Password must be at least 6 characters');
       }
 
+      print('Creating Firebase Auth user...');
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
@@ -90,6 +95,11 @@ class AuthApi {
         return AuthResult.failure('Registration failed. Please try again.');
       }
 
+      print('Firebase Auth user created: ${credential.user!.uid}');
+
+      // Update Firebase Auth display name
+      await credential.user!.updateDisplayName(displayName.trim());
+
       // Create user profile
       final userProfile = UserProfile(
         uid: credential.user!.uid,
@@ -97,23 +107,37 @@ class AuthApi {
         displayName: displayName.trim(),
         userType: userType,
         role: userType == 'creator' ? 'creator' : 'member',
-        isVerified: userType != 'creator',
+        isVerified: userType != 'creator', // Members are auto-verified, creators need admin approval
         certificateUrl: certificateUrl,
         createdAt: DateTime.now(),
+        lastLoginAt: DateTime.now(),
       );
 
-      await _firestore
-          .collection('users')
-          .doc(credential.user!.uid)
-          .set(userProfile.toMap());
+      // Save to Firestore
+      try {
+        print('Saving user profile to Firestore...');
+        await _firestore
+            .collection('users')
+            .doc(credential.user!.uid)
+            .set(userProfile.toMap());
+        print('User profile saved successfully');
+      } catch (firestoreError) {
+        print('Firestore error: $firestoreError');
+        // Clean up auth user if Firestore fails
+        try {
+          await credential.user!.delete();
+        } catch (_) {}
+        return AuthResult.failure('Database permission error. Please check your Firebase Firestore security rules.');
+      }
 
+      print('Registration completed successfully');
       return AuthResult.success(userProfile);
     } on FirebaseAuthException catch (e) {
+      print('Firebase Auth error: ${e.code} - ${e.message}');
       return AuthResult.failure(_getFirebaseAuthErrorMessage(e.code));
     } catch (e) {
-      return AuthResult.failure(
-        'An unexpected error occurred. Please try again.',
-      );
+      print('General registration error: $e');
+      return AuthResult.failure('Registration error: ${e.toString()}');
     }
   }
 

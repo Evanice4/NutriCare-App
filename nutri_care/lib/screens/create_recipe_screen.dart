@@ -140,10 +140,18 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         ingredients: validIngredients,
       );
 
-      await _contentApi.createRecipe(recipe);
+      final recipeId = await _contentApi.createRecipe(recipe);
 
-      if (mounted) {
+      if (mounted && recipeId.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Recipe created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.of(context).pop(true); // Return true to indicate success
+      } else {
+        throw Exception('Failed to create recipe');
       }
     } catch (e) {
       setState(() {

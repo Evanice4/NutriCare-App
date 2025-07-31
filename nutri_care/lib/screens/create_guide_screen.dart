@@ -129,9 +129,9 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
         createdAt: DateTime.now(),
       );
 
-      await _contentApi.createNewGuide(guide);
+      final guideId = await _contentApi.createNewGuide(guide);
 
-      if (mounted) {
+      if (mounted && guideId.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Guide created successfully!'),
@@ -139,6 +139,8 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
           ),
         );
         Navigator.of(context).pop(true); // Return true to indicate success
+      } else {
+        throw Exception('Failed to create guide');
       }
     } catch (e) {
       setState(() {
