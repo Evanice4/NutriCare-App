@@ -12,9 +12,9 @@ class ChildNutritionScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/placeholder'),
+            onPressed: () => Navigator.pushNamed(context, '/userTypeSelection'),
             child: const Text("Skip", style: TextStyle(color: Colors.black)),
-          )
+          ),
         ],
       ),
       body: Padding(
@@ -25,7 +25,11 @@ class ChildNutritionScreen extends StatelessWidget {
             const CircleAvatar(
               radius: 60,
               backgroundColor: Colors.tealAccent,
-              child: Icon(Icons.child_care_rounded, size: 60, color: Colors.brown),
+              child: Icon(
+                Icons.child_care_rounded,
+                size: 60,
+                color: Colors.brown,
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -46,7 +50,7 @@ class ChildNutritionScreen extends StatelessWidget {
                 foregroundColor: Colors.black,
               ),
               onPressed: () {
-                Navigator.pushNamed(context, '/community_support');
+                Navigator.pushNamed(context, '/communitySupport');
               },
               child: const Text("Next"),
             ),

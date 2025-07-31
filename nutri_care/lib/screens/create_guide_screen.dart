@@ -21,7 +21,7 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
   final _contentApi = FirestoreContentApi();
 
   File? _selectedImage;
-  String? _imageUrl;
+  // String? _imageUrl;
   String _selectedCategory = 'General';
   bool _loading = false;
   String? _error;

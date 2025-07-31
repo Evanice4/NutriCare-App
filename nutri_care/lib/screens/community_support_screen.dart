@@ -34,10 +34,7 @@ class CommunitySupportScreen extends StatelessWidget {
               const Text(
                 'Connect with health workers and other parents. Share experiences, ask questions, and learn from each other\'s successes.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.black54),
               ),
               const SizedBox(height: 40),
               ElevatedButton(
@@ -47,10 +44,13 @@ class CommunitySupportScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
                 onPressed: () {
-                  Navigator.pushNamed(context, '/user_type_selection');
+                  Navigator.pushNamed(context, '/userTypeSelection');
                 },
                 child: const Text('Get Started'),
               ),

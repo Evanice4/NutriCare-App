@@ -12,9 +12,9 @@ class WelcomeScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/placeholder'),
+            onPressed: () => Navigator.pushNamed(context, '/userTypeSelection'),
             child: const Text("Skip", style: TextStyle(color: Colors.black)),
-          )
+          ),
         ],
       ),
       body: Padding(
@@ -25,7 +25,11 @@ class WelcomeScreen extends StatelessWidget {
             const CircleAvatar(
               radius: 50,
               backgroundColor: Colors.green,
-              child: Icon(Icons.local_hospital_rounded, size: 50, color: Colors.white),
+              child: Icon(
+                Icons.local_hospital_rounded,
+                size: 50,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 24),
             const Text(

@@ -30,7 +30,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => NutritionGuide.fromMap(doc.id, doc.data()!))
+              .map((doc) => NutritionGuide.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -61,7 +61,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => Recipe.fromMap(doc.id, doc.data()!))
+              .map((doc) => Recipe.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -92,7 +92,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => HealthAlert.fromMap(doc.id, doc.data()!))
+              .map((doc) => HealthAlert.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -111,7 +111,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => NutritionGuide.fromMap(doc.id, doc.data()!))
+              .map((doc) => NutritionGuide.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -124,7 +124,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => Recipe.fromMap(doc.id, doc.data()!))
+              .map((doc) => Recipe.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -138,7 +138,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => NutritionGuide.fromMap(doc.id, doc.data()!))
+              .map((doc) => NutritionGuide.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -151,7 +151,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => Recipe.fromMap(doc.id, doc.data()!))
+              .map((doc) => Recipe.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -164,7 +164,7 @@ class FirestoreContentApi {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => HealthAlert.fromMap(doc.id, doc.data()!))
+              .map((doc) => HealthAlert.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }

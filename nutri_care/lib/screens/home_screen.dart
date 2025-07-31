@@ -368,9 +368,9 @@ class _QuickLinkCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Color.fromRGBO(
-                    color.red,
-                    color.green,
-                    color.blue,
+                    (color.r * 255).round(),
+                    (color.g * 255).round(),
+                    (color.b * 255).round(),
                     0.1,
                   ),
                   borderRadius: BorderRadius.circular(12),
