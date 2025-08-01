@@ -10,7 +10,9 @@ import '../bloc/content/content_bloc.dart';
 import '../bloc/content/content_event.dart';
 
 class CreateGuideScreen extends StatefulWidget {
-  const CreateGuideScreen({super.key});
+  final Guide? guide;
+  
+  const CreateGuideScreen({super.key, this.guide});
 
   @override
   State<CreateGuideScreen> createState() => _CreateGuideScreenState();
@@ -24,10 +26,11 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
   final _contentApi = FirestoreContentApi();
 
   File? _selectedImage;
-  // String? _imageUrl;
+  String? _imageUrl;
   String _selectedCategory = 'General';
   bool _loading = false;
   String? _error;
+  bool get _isEditing => widget.guide != null;
 
   final List<String> _categories = [
     'General',
@@ -38,6 +41,18 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
     'Special Diets',
     'Children\'s Nutrition',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _titleController.text = widget.guide!.title;
+      _descriptionController.text = widget.guide!.description;
+      _contentController.text = widget.guide!.content;
+      _selectedCategory = widget.guide!.category;
+      _imageUrl = widget.guide!.imageUrl;
+    }
+  }
 
   @override
   void dispose() {
@@ -120,33 +135,47 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
         }
       }
 
-      // Create the guide
-      final guide = Guide(
-        id: '', // Will be set by Firestore
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        content: _contentController.text.trim(),
-        category: _selectedCategory,
-        imageUrl: imageUrl,
-        creatorId: user.uid,
-        createdAt: DateTime.now(),
-      );
-
-      final guideId = await _contentApi.createNewGuide(guide);
-
-      if (mounted && guideId.isNotEmpty) {
-        // Refresh content in BLoC
-        context.read<ContentBloc>().add(LoadGuides());
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Guide created successfully!'),
-            backgroundColor: Colors.green,
-          ),
+      if (_isEditing) {
+        // Update existing guide
+        final updatedGuide = Guide(
+          id: widget.guide!.id,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          content: _contentController.text.trim(),
+          category: _selectedCategory,
+          imageUrl: imageUrl.isNotEmpty ? imageUrl : (_imageUrl ?? ''),
+          creatorId: widget.guide!.creatorId,
+          createdAt: widget.guide!.createdAt,
         );
-        Navigator.of(context).pop(true); // Return true to indicate success
+
+        context.read<ContentBloc>().add(
+          UpdateGuide(guide: updatedGuide, currentUserId: user.uid),
+        );
+        
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
       } else {
-        throw Exception('Failed to create guide');
+        // Create new guide
+        final guide = Guide(
+          id: '',
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          content: _contentController.text.trim(),
+          category: _selectedCategory,
+          imageUrl: imageUrl,
+          creatorId: user.uid,
+          createdAt: DateTime.now(),
+        );
+
+        final guideId = await _contentApi.createNewGuide(guide);
+
+        if (mounted && guideId.isNotEmpty) {
+          context.read<ContentBloc>().add(LoadGuides());
+          Navigator.of(context).pop(true);
+        } else {
+          throw Exception('Failed to create guide');
+        }
       }
     } catch (e) {
       setState(() {
@@ -165,15 +194,15 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Nutrition Guide'),
+        title: Text(_isEditing ? 'Edit Guide' : 'Create Nutrition Guide'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         actions: [
           if (!_loading)
             TextButton(
               onPressed: _createGuide,
-              child: const Text(
-                'PUBLISH',
+              child: Text(
+                _isEditing ? 'UPDATE' : 'PUBLISH',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -274,7 +303,42 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
                           ),
                         ],
                       )
-                    : InkWell(
+                    : (_imageUrl != null && _imageUrl!.isNotEmpty)
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  _imageUrl!,
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _imageUrl = null;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : InkWell(
                         onTap: _loading ? null : _pickImage,
                         borderRadius: BorderRadius.circular(10),
                         child: const Column(
@@ -473,8 +537,8 @@ class _CreateGuideScreenState extends State<CreateGuideScreen> {
                             ),
                           ),
                         )
-                      : const Text(
-                          'Publish Guide',
+                      : Text(
+                          _isEditing ? 'Update Guide' : 'Publish Guide',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

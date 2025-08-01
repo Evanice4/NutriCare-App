@@ -38,6 +38,16 @@ class FirestoreContentApi {
   // Recipes
   Future<String> createRecipe(Recipe recipe) async {
     final doc = await _db.collection('recipes').add(recipe.toMap());
+    
+    // Create notification
+    await _createNotification(
+      title: 'New Recipe Added',
+      message: 'New recipe "${recipe.title}" has been published',
+      type: 'recipe_added',
+      contentId: doc.id,
+      creatorId: recipe.creatorId,
+    );
+    
     return doc.id;
   }
 
@@ -172,6 +182,16 @@ class FirestoreContentApi {
   // New Guide methods (for the Guide model used in guides screen)
   Future<String> createNewGuide(Guide guide) async {
     final doc = await _db.collection('guides').add(guide.toMap());
+    
+    // Create notification
+    await _createNotification(
+      title: 'New Guide Added',
+      message: 'New guide "${guide.title}" has been published',
+      type: 'guide_added',
+      contentId: doc.id,
+      creatorId: guide.creatorId,
+    );
+    
     return doc.id;
   }
 
@@ -194,5 +214,42 @@ class FirestoreContentApi {
               .map((doc) => Guide.fromMap(doc.data(), doc.id))
               .toList(),
         );
+  }
+
+  // Notifications
+  Future<void> _createNotification({
+    required String title,
+    required String message,
+    required String type,
+    required String contentId,
+    required String creatorId,
+  }) async {
+    final notification = AppNotification(
+      id: '',
+      title: title,
+      message: message,
+      type: type,
+      contentId: contentId,
+      creatorId: creatorId,
+      createdAt: DateTime.now(),
+    );
+    
+    await _db.collection('notifications').add(notification.toMap());
+  }
+
+  Stream<List<AppNotification>> notificationsStream() {
+    return _db
+        .collection('notifications')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AppNotification.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    await _db.collection('notifications').doc(notificationId).delete();
   }
 }

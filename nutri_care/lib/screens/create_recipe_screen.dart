@@ -10,7 +10,9 @@ import '../bloc/content/content_bloc.dart';
 import '../bloc/content/content_event.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
-  const CreateRecipeScreen({super.key});
+  final Recipe? recipe;
+  
+  const CreateRecipeScreen({super.key, this.recipe});
 
   @override
   State<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
@@ -28,6 +30,19 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   String? _error;
 
   final List<Ingredient> _ingredients = [Ingredient(name: '', amount: '')];
+  bool get _isEditing => widget.recipe != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _titleController.text = widget.recipe!.title;
+      _descriptionController.text = widget.recipe!.description;
+      _imageUrl = widget.recipe!.imageUrl;
+      _ingredients.clear();
+      _ingredients.addAll(widget.recipe!.ingredients);
+    }
+  }
 
   @override
   void dispose() {
@@ -132,32 +147,45 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         _imageUrl = await _uploadImage();
       }
 
-      // Create recipe
-      final recipe = Recipe(
-        id: '', // Will be set by Firestore
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        imageUrl: _imageUrl ?? '',
-        creatorId: user.uid,
-        createdAt: DateTime.now(),
-        ingredients: validIngredients,
-      );
-
-      final recipeId = await _contentApi.createRecipe(recipe);
-
-      if (mounted && recipeId.isNotEmpty) {
-        // Refresh content in BLoC
-        context.read<ContentBloc>().add(LoadRecipes());
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Recipe created successfully!'),
-            backgroundColor: Colors.green,
-          ),
+      if (_isEditing) {
+        // Update existing recipe
+        final updatedRecipe = Recipe(
+          id: widget.recipe!.id,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          imageUrl: _imageUrl ?? widget.recipe!.imageUrl,
+          creatorId: widget.recipe!.creatorId,
+          createdAt: widget.recipe!.createdAt,
+          ingredients: validIngredients,
         );
-        Navigator.of(context).pop(true); // Return true to indicate success
+
+        context.read<ContentBloc>().add(
+          UpdateRecipe(recipe: updatedRecipe, currentUserId: user.uid),
+        );
+        
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
       } else {
-        throw Exception('Failed to create recipe');
+        // Create new recipe
+        final recipe = Recipe(
+          id: '',
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          imageUrl: _imageUrl ?? '',
+          creatorId: user.uid,
+          createdAt: DateTime.now(),
+          ingredients: validIngredients,
+        );
+
+        final recipeId = await _contentApi.createRecipe(recipe);
+
+        if (mounted && recipeId.isNotEmpty) {
+          context.read<ContentBloc>().add(LoadRecipes());
+          Navigator.of(context).pop(true);
+        } else {
+          throw Exception('Failed to create recipe');
+        }
       }
     } catch (e) {
       setState(() {
@@ -171,15 +199,15 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Recipe'),
+        title: Text(_isEditing ? 'Edit Recipe' : 'Create Recipe'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         actions: [
           if (!_loading)
             TextButton(
               onPressed: _publishRecipe,
-              child: const Text(
-                'Publish',
+              child: Text(
+                _isEditing ? 'Update' : 'Publish',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -239,6 +267,14 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                                   fit: BoxFit.cover,
                                 ),
                               )
+                            : (_imageUrl != null && _imageUrl!.isNotEmpty)
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      _imageUrl!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
                             : const Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -408,8 +444,8 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                             ? const CircularProgressIndicator(
                                 color: Colors.white,
                               )
-                            : const Text(
-                                'Publish Recipe',
+                            : Text(
+                                _isEditing ? 'Update Recipe' : 'Publish Recipe',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

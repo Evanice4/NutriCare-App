@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/content_models.dart';
 import '../constants/colors.dart';
 import '../bloc/content/content_bloc.dart';
-
+import '../api/firestore_content_api.dart';
 import '../bloc/content/content_state.dart';
 import '../bloc/search/search_bloc.dart';
 import '../bloc/search/search_event.dart';
@@ -18,6 +18,16 @@ class AlertsScreen extends StatefulWidget {
 
 class _AlertsScreenState extends State<AlertsScreen> {
   final _searchController = TextEditingController();
+  final _contentApi = FirestoreContentApi();
+
+  @override
+  void initState() {
+    super.initState();
+    // Clear search state when entering this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SearchBloc>().add(ClearSearch());
+    });
+  }
 
   @override
   void dispose() {
@@ -26,7 +36,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
   }
 
   void _performSearch() {
-    context.read<SearchBloc>().add(SearchAlerts(query: _searchController.text));
+    // For now, we'll disable search on notifications
+    // context.read<SearchBloc>().add(SearchAlerts(query: _searchController.text));
   }
 
   @override
@@ -40,32 +51,13 @@ class _AlertsScreenState extends State<AlertsScreen> {
       ),
       body: Column(
         children: [
-          // Search Section
+          // Header Section
           Container(
             padding: const EdgeInsets.all(16),
             color: AppColors.secondaryBackground,
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) => _performSearch(),
-              decoration: InputDecoration(
-                hintText: 'Search alerts...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          context.read<SearchBloc>().add(ClearSearch());
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+            child: const Text(
+              'Recent notifications from creators',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ),
           // Content Section
@@ -76,61 +68,125 @@ class _AlertsScreenState extends State<AlertsScreen> {
   }
 
   Widget _buildContent() {
-    return BlocBuilder<SearchBloc, SearchState>(
-      builder: (context, searchState) {
-        if (searchState is SearchResults) {
-          return _buildAlertsList(searchState.alerts);
+    return StreamBuilder<List<AppNotification>>(
+      stream: _contentApi.notificationsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
         }
 
-        return BlocBuilder<ContentBloc, ContentState>(
-          builder: (context, contentState) {
-            if (contentState is ContentLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading notifications',
+              style: TextStyle(color: Colors.white),
+            ),
+          );
+        }
 
-            if (contentState is ContentError) {
-              return Center(child: Text('Error: ${contentState.message}'));
-            }
-
-            final alerts = contentState is ContentLoaded
-                ? contentState.alerts
-                : <HealthAlert>[];
-            return _buildAlertsList(alerts);
-          },
-        );
+        final notifications = snapshot.data ?? [];
+        return _buildNotificationsList(notifications);
       },
     );
   }
 
-  Widget _buildAlertsList(List<HealthAlert> alerts) {
-    if (alerts.isEmpty) {
+  Widget _buildNotificationsList(List<AppNotification> notifications) {
+    if (notifications.isEmpty) {
       return const Center(
-        child: Text(
-          'No alerts found',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'No notifications yet',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'You\'ll see notifications when creators add new content',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: alerts.length,
+      itemCount: notifications.length,
       itemBuilder: (context, index) {
-        final alert = alerts[index];
+        final notification = notifications[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            title: Text(alert.title),
-            subtitle: Text(alert.description),
-            leading: const Icon(Icons.warning, color: Colors.red),
-            trailing: Text(
-              _formatDate(alert.createdAt),
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            title: Text(notification.title),
+            subtitle: Text(notification.message),
+            leading: Icon(
+              _getNotificationIcon(notification.type),
+              color: _getNotificationColor(notification.type),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatDate(notification.createdAt),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => _dismissNotification(notification.id),
+                  tooltip: 'Dismiss',
+                ),
+              ],
             ),
           ),
         );
       },
     );
+  }
+
+  IconData _getNotificationIcon(String type) {
+    switch (type) {
+      case 'recipe_added':
+      case 'recipe_updated':
+        return Icons.restaurant;
+      case 'guide_added':
+      case 'guide_updated':
+        return Icons.menu_book;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  Color _getNotificationColor(String type) {
+    switch (type) {
+      case 'recipe_added':
+      case 'recipe_updated':
+        return Colors.orange;
+      case 'guide_added':
+      case 'guide_updated':
+        return Colors.green;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Future<void> _dismissNotification(String notificationId) async {
+    try {
+      await _contentApi.deleteNotification(notificationId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to dismiss notification: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _formatDate(DateTime date) {

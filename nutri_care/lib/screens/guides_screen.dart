@@ -4,7 +4,7 @@ import '../models/content_models.dart';
 import '../models/user_model.dart';
 import '../constants/colors.dart';
 import '../bloc/content/content_bloc.dart';
-
+import '../bloc/content/content_event.dart';
 import '../bloc/content/content_state.dart';
 import '../bloc/search/search_bloc.dart';
 import '../bloc/search/search_event.dart';
@@ -39,6 +39,10 @@ class _GuidesScreenState extends State<GuidesScreen> {
   void initState() {
     super.initState();
     _currentUser = widget.currentUser;
+    // Clear search state when entering this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SearchBloc>().add(ClearSearch());
+    });
   }
 
   @override
@@ -249,9 +253,48 @@ class _GuidesScreenState extends State<GuidesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        guide.title,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              guide.title,
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (_currentUser?.uid == guide.creatorId) ...[
+                            PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  _editGuide(guide);
+                                } else if (value == 'delete') {
+                                  _deleteGuide(guide);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 16),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, size: 16, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ]
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -417,6 +460,57 @@ class _GuidesScreenState extends State<GuidesScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _editGuide(Guide guide) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => CreateGuideScreen(guide: guide),
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Guide updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  void _deleteGuide(Guide guide) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Guide'),
+        content: Text('Are you sure you want to delete "${guide.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<ContentBloc>().add(
+                DeleteGuide(
+                  guideId: guide.id,
+                  currentUserId: _currentUser!.uid,
+                ),
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Guide deleted successfully!'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

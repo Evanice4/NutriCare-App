@@ -178,3 +178,46 @@ class HealthAlert {
     'createdAt': createdAt,
   };
 }
+
+class AppNotification {
+  final String id;
+  final String title;
+  final String message;
+  final String type; // 'recipe_added', 'recipe_updated', 'guide_added', 'guide_updated'
+  final String contentId;
+  final String creatorId;
+  final DateTime createdAt;
+
+  AppNotification({
+    required this.id,
+    required this.title,
+    required this.message,
+    required this.type,
+    required this.contentId,
+    required this.creatorId,
+    required this.createdAt,
+  });
+
+  factory AppNotification.fromMap(String id, Map<String, dynamic> map) {
+    return AppNotification(
+      id: id,
+      title: map['title'] ?? '',
+      message: map['message'] ?? '',
+      type: map['type'] ?? '',
+      contentId: map['contentId'] ?? '',
+      creatorId: map['creatorId'] ?? '',
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'message': message,
+    'type': type,
+    'contentId': contentId,
+    'creatorId': creatorId,
+    'createdAt': createdAt,
+  };
+}
