@@ -86,12 +86,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return;
     }
 
-    if (_passwordController.text.trim() !=
-        _confirmPasswordController.text.trim()) {
+    // Additional validation before submission
+    final email = _emailController.text.trim().toLowerCase();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    final displayName = _displayNameController.text.trim();
+
+    if (password != confirmPassword) {
       setState(() {
         _error = 'Passwords do not match';
       });
       return;
+    }
+
+    // Check if email contains display name (weak password indicator)
+    if (password.toLowerCase().contains(displayName.toLowerCase()) ||
+        password.toLowerCase().contains(email.split('@')[0].toLowerCase())) {
+      setState(() {
+        _error = 'Password should not contain your name or email';
+      });
+      return;
+    }
+
+    // Check for creator-specific requirements
+    if (widget.userType == 'creator') {
+      if (displayName.length < 3) {
+        setState(() {
+          _error = 'Creator name must be at least 3 characters';
+        });
+        return;
+      }
     }
 
     setState(() {
@@ -102,9 +126,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     try {
       // First register the user
       final result = await _authApi.registerUser(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-        displayName: _displayNameController.text.trim(),
+        email: email,
+        password: password,
+        displayName: displayName,
         userType: widget.userType,
       );
 
@@ -219,6 +243,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     if (value.trim().length < 2) {
                       return 'Name must be at least 2 characters';
                     }
+                    if (value.trim().length > 50) {
+                      return 'Name must be less than 50 characters';
+                    }
+                    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value.trim())) {
+                      return 'Name can only contain letters and spaces';
+                    }
                     return null;
                   },
                 ),
@@ -248,10 +278,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Email is required';
                     }
-                    if (!RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value.trim())) {
+                    final email = value.trim().toLowerCase();
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
                       return 'Please enter a valid email address';
+                    }
+                    if (email.length > 254) {
+                      return 'Email address is too long';
                     }
                     return null;
                   },
@@ -291,11 +323,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null || value.isEmpty) {
                       return 'Password is required';
                     }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
+                    if (value.length < 8) {
+                      return 'Password must be at least 8 characters';
+                    }
+                    if (value.length > 128) {
+                      return 'Password must be less than 128 characters';
+                    }
+                    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
+                      return 'Password must contain uppercase, lowercase, and number';
                     }
                     return null;
                   },
@@ -335,7 +373,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   obscureText: _obscureConfirmPassword,
                   textInputAction: TextInputAction.done,
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null || value.isEmpty) {
                       return 'Please confirm your password';
                     }
                     if (value != _passwordController.text) {

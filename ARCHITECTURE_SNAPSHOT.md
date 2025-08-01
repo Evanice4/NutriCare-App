@@ -1,6 +1,6 @@
-# NutriCare App - Architecture Snapshot
+# NutriCare App - System Architecture
 
-## 🏗️ Clean Architecture Layers
+## 🏗️ Clean Architecture Layers with BLoC Pattern
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -45,7 +45,44 @@
 
 ## 🔄 State Management Pattern
 
-### **Pattern Used: StatefulWidget + StreamBuilder (Firebase Reactive)**
+### **Pattern Used: BLoC (Business Logic Component) + Firebase Integration**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    BLOC ARCHITECTURE LAYERS                        │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  📱 PRESENTATION LAYER (UI)                              │
+├─────────────────────────────────────────────────────────────┤
+│  • BlocBuilder<ThemeBloc, ThemeState>                     │
+│  • BlocBuilder<UserBloc, UserState>                       │
+│  • BlocBuilder<ContentBloc, ContentState>                 │
+│  • BlocBuilder<SearchBloc, SearchState>                   │
+│  • BlocBuilder<NavigationBloc, NavigationState>           │
+└─────────────────────────────────────────────────────────────┘
+                              ↕️
+┌─────────────────────────────────────────────────────────────┐
+│                    BLOC LAYER                              │
+├─────────────────────────────────────────────────────────────┤
+│  🎯 ThemeBloc (Theme Management)                        │
+│  👤 UserBloc (Authentication & Profile)                 │
+│  📝 ContentBloc (Recipes, Guides, Alerts)               │
+│  🔍 SearchBloc (Search & Filter)                        │
+│  🧭 NavigationBloc (Bottom Navigation)                  │
+└─────────────────────────────────────────────────────────────┘
+                              ↕️
+┌─────────────────────────────────────────────────────────────┐
+│                 SERVICE LAYER                              │
+├─────────────────────────────────────────────────────────────┤
+│  🔌 AuthApi (Firebase Authentication)                  │
+│  📄 ContentService (CRUD Operations)                    │
+│  🌐 FirestoreContentApi (Database)                     │
+│  📡 HttpApiClient (HTTP Requests)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### **BLoC Event Flow:**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -215,10 +252,59 @@ class HomeScreen extends StatefulWidget {
 - **State Management**: StatefulWidget + Streams
 - **Architecture**: Clean Architecture principles
 
+## 🧪 Testing Architecture
+
+### **Test Coverage Structure**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    TESTING PYRAMID                         │
+└─────────────────────────────────────────────────────────────┘
+
+                    🔺 Integration Tests
+                   /                    \
+                  /   App Flow Tests     \
+                 /   Authentication      \
+                /   Navigation Tests      \
+               /_________________________\
+              /                           \
+             /        Widget Tests         \
+            /   Theme Toggle, Search UI    \
+           /   Phone Auth, Filter Chips    \
+          /________________________________\
+         /                                  \
+        /            Unit Tests              \
+       /   BLoC Tests, Service Tests         \
+      /   ThemeBloc, UserBloc, ContentBloc   \
+     /____________________________________\
+```
+
+### **Test Categories:**
+
+1. **Unit Tests** (`test/unit/`)
+   - BLoC state management tests
+   - Service layer tests
+   - Model validation tests
+
+2. **Widget Tests** (`test/widget/`)
+   - UI component behavior
+   - User interaction testing
+   - Theme switching validation
+
+3. **Integration Tests** (`test/integration/`)
+   - Complete user flows
+   - Authentication workflows
+   - Navigation testing
+
+4. **Mock Services** (`test/mocks/`)
+   - MockAuthApi for authentication testing
+   - MockContentService for data operations
+   - Firebase emulator integration
+
 ## 📋 Future Enhancements
 
-1. **State Management**: Migrate to BLoC/Cubit for complex state
-2. **Offline Support**: Implement local caching
-3. **Testing**: Add unit and integration tests
-4. **Performance**: Implement pagination and lazy loading
-5. **Analytics**: Add Firebase Analytics integration
+1. **Offline Support**: Implement local caching with Hive/SQLite
+2. **Performance**: Add pagination and lazy loading
+3. **Analytics**: Firebase Analytics integration
+4. **Push Notifications**: FCM implementation
+5. **Accessibility**: Enhanced screen reader support

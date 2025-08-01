@@ -1,0 +1,63 @@
+# Test configuration for NutriCare app
+name: NutriCare Test Suite
+description: Comprehensive testing configuration for the NutriCare nutrition app
+
+# Test directories
+test_directories:
+  unit: test/unit/
+  widget: test/widget/
+  integration: test/integration/
+  mocks: test/mocks/
+
+# Test patterns
+test_patterns:
+  - "**/*_test.dart"
+  - "**/*_test_*.dart"
+
+# Coverage settings
+coverage:
+  enabled: true
+  output_directory: coverage/
+  exclude_patterns:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/firebase_options.dart"
+    - "**/main.dart"
+
+# Test environments
+environments:
+  development:
+    firebase_project: nutricare-dev
+    use_emulator: true
+  
+  testing:
+    firebase_project: nutricare-test
+    use_emulator: true
+  
+  production:
+    firebase_project: nutricare-prod
+    use_emulator: false
+
+# Mock configurations
+mocks:
+  auth_api:
+    class: MockAuthApi
+    file: test/mocks/mock_auth_api.dart
+  
+  content_service:
+    class: MockContentService
+    file: test/mocks/mock_content_service.dart
+
+# Test commands
+commands:
+  unit_tests: "flutter test test/unit/"
+  widget_tests: "flutter test test/widget/"
+  integration_tests: "flutter test test/integration/"
+  all_tests: "flutter test"
+  coverage: "flutter test --coverage"
+  
+# CI/CD settings
+ci:
+  timeout: 600 # 10 minutes
+  retry_count: 3
+  parallel_jobs: 4
