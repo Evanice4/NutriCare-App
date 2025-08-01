@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../api/auth_api.dart';
 import '../models/user_model.dart';
 import '../constants/colors.dart';
 import '../bloc/navigation/navigation_bloc.dart';
@@ -26,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final AuthApi _authApi = AuthApi();
 
   @override
   void initState() {

@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/content_models.dart';
 import '../constants/colors.dart';
-import '../bloc/content/content_bloc.dart';
 import '../api/firestore_content_api.dart';
-import '../bloc/content/content_state.dart';
-import '../bloc/search/search_bloc.dart';
-import '../bloc/search/search_event.dart';
-import '../bloc/search/search_state.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -23,10 +17,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
   @override
   void initState() {
     super.initState();
-    // Clear search state when entering this screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SearchBloc>().add(ClearSearch());
-    });
   }
 
   @override
@@ -35,10 +25,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
     super.dispose();
   }
 
-  void _performSearch() {
-    // For now, we'll disable search on notifications
-    // context.read<SearchBloc>().add(SearchAlerts(query: _searchController.text));
-  }
+
 
   @override
   Widget build(BuildContext context) {

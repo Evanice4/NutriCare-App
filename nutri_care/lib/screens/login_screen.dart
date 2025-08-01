@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../api/auth_api.dart';
-import 'home_screen.dart';
 import 'registration_screen.dart';
 import 'phone_auth_screen.dart';
 

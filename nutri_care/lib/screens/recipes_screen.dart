@@ -28,10 +28,6 @@ class _RecipesScreenState extends State<RecipesScreen> {
   void initState() {
     super.initState();
     _currentUser = widget.currentUser;
-    // Clear search state when entering this screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SearchBloc>().add(ClearSearch());
-    });
   }
 
   @override

@@ -42,12 +42,16 @@ class NutriCareApp extends StatelessWidget {
         BlocProvider<ThemeBloc>(
           create: (context) => ThemeBloc()..add(LoadTheme()),
         ),
-        BlocProvider<NavigationBloc>(create: (context) => NavigationBloc()),
         BlocProvider<UserBloc>(create: (context) => UserBloc()),
         BlocProvider<ContentBloc>(create: (context) => ContentBloc()),
         BlocProvider<SearchBloc>(
           create: (context) =>
               SearchBloc(contentBloc: context.read<ContentBloc>()),
+        ),
+        BlocProvider<NavigationBloc>(
+          create: (context) => NavigationBloc(
+            searchBloc: context.read<SearchBloc>(),
+          ),
         ),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(
