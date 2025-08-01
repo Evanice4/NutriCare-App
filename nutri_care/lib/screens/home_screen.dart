@@ -251,7 +251,7 @@ class _HomeContent extends StatelessWidget {
                 subtitle: 'Expert advice',
                 color: Colors.blue,
                 onTap: () {
-                  // This would be handled by the parent's navigation
+                  context.read<NavigationBloc>().add(NavigateToTab(1));
                 },
               ),
               _QuickLinkCard(
@@ -260,7 +260,7 @@ class _HomeContent extends StatelessWidget {
                 subtitle: 'Delicious meals',
                 color: Colors.orange,
                 onTap: () {
-                  // This would be handled by the parent's navigation
+                  context.read<NavigationBloc>().add(NavigateToTab(2));
                 },
               ),
               _QuickLinkCard(
@@ -269,7 +269,7 @@ class _HomeContent extends StatelessWidget {
                 subtitle: 'Stay informed',
                 color: Colors.red,
                 onTap: () {
-                  // This would be handled by the parent's navigation
+                  context.read<NavigationBloc>().add(NavigateToTab(3));
                 },
               ),
               _QuickLinkCard(
